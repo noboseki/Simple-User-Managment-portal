@@ -6,3 +6,6 @@ spring:
     username: sa
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
+
+jwt:
+  secret: 'pxO[{yNZLtxIJSyOb}rdIAYyiJrJQKiGnsnIilQhVWM6ZDRIcnn99I+FJG0D'
