@@ -1,6 +1,6 @@
-package com.noboseki.SupportPortal.resource;
+package com.noboseki.supportportal.resource;
 
-import com.noboseki.SupportPortal.domain.User;
+import com.noboseki.supportportal.domain.User;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

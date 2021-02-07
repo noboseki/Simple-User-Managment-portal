@@ -1,4 +1,4 @@
-package com.noboseki.SupportPortal.domain;
+package com.noboseki.supportportal.domain;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

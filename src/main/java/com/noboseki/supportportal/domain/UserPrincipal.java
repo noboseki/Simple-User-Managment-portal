@@ -1,4 +1,4 @@
-package com.noboseki.SupportPortal.domain;
+package com.noboseki.supportportal.domain;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
