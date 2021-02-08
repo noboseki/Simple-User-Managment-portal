@@ -19,7 +19,7 @@ import java.util.Date;
 @Service
 @Transactional
 @RequiredArgsConstructor
-@Qualifier("UserDetailsService")
+@Qualifier("userDetailsService")
 public class UserServiceImpl implements UserService, UserDetailsService {
     private final UserRepository userRepository;
 
