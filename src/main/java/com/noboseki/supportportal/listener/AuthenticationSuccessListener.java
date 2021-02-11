@@ -1,6 +1,7 @@
 package com.noboseki.supportportal.listener;
 
 import com.noboseki.supportportal.domain.User;
+import com.noboseki.supportportal.domain.UserPrincipal;
 import com.noboseki.supportportal.service.LoginAttemptService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
@@ -15,9 +16,9 @@ public class AuthenticationSuccessListener {
     @EventListener
     public void onAuthenticationSuccess(AuthenticationSuccessEvent event) {
         Object principal = event.getAuthentication().getPrincipal();
-        if (principal instanceof User) {
-            User user = (User) event.getAuthentication().getPrincipal();
-            loginAttemptService.evictUserFromLoginAttemptCache(user.getUsername());
+        if (principal instanceof UserPrincipal) {
+            UserPrincipal userPrincipal = (UserPrincipal) event.getAuthentication().getPrincipal();
+            loginAttemptService.evictUserFromLoginAttemptCache(userPrincipal.getUsername());
         }
     }
 }
