@@ -7,6 +7,7 @@ import com.noboseki.supportportal.exception.domain.EmailExistException;
 import com.noboseki.supportportal.exception.domain.UserNotFoundException;
 import com.noboseki.supportportal.exception.domain.UsernameExistException;
 import com.noboseki.supportportal.repository.UserRepository;
+import com.noboseki.supportportal.service.LoginAttemptService;
 import com.noboseki.supportportal.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,7 @@ import static com.noboseki.supportportal.service.impl.UserServiceImplConstant.*;
 public class UserServiceImpl implements UserService, UserDetailsService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final LoginAttemptService attemptService;
 
     @Override
     public UserDetails loadUserByUsername(String username) {
@@ -43,6 +45,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             return new UsernameNotFoundException(NOT_FOUND_BY_USERNAME + username);
         });
 
+        validateLoginAttempt(user);
         user.setLastLoginDateDisplay(user.getLastLoginDate());
         user.setLastLoginDate(new Date());
         userRepository.save(user);
@@ -50,6 +53,18 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         UserPrincipal userPrincipal = new UserPrincipal(user);
         log.info(USER_WAS_FOUND + username);
         return userPrincipal;
+    }
+
+    private void validateLoginAttempt(User user) {
+        if (user.isNotLocked()) {
+            if (attemptService.hasExceededMaxAttempts(user.getUsername())) {
+                user.setNotLocked(false);
+            } else {
+                user.setNotLocked(true);
+            }
+        } else {
+            attemptService.evictUserFromLoginAttemptCache(user.getUsername());
+        }
     }
 
     @Override
