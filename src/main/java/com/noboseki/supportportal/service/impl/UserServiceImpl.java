@@ -4,9 +4,11 @@ import com.noboseki.supportportal.domain.User;
 import com.noboseki.supportportal.domain.UserPrincipal;
 import com.noboseki.supportportal.enumeration.Role;
 import com.noboseki.supportportal.exception.domain.EmailExistException;
+import com.noboseki.supportportal.exception.domain.EmailSendException;
 import com.noboseki.supportportal.exception.domain.UserNotFoundException;
 import com.noboseki.supportportal.exception.domain.UsernameExistException;
 import com.noboseki.supportportal.repository.UserRepository;
+import com.noboseki.supportportal.service.EmailService;
 import com.noboseki.supportportal.service.LoginAttemptService;
 import com.noboseki.supportportal.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final LoginAttemptService attemptService;
+    private final EmailService emailService;
 
     @Override
     public UserDetails loadUserByUsername(String username) {
@@ -68,8 +71,9 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
+    @Transactional
     public User register(String firstName, String lastName, String username, String email)
-            throws UserNotFoundException, UsernameExistException, EmailExistException {
+            throws UserNotFoundException, UsernameExistException, EmailExistException, EmailSendException {
         validateNewUsernameAndEmail(StringUtils.EMPTY, username, email);
         String password = generatePassword();
         String encodedPassword = encodePassword(password);
@@ -89,6 +93,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         userRepository.save(user);
         log.info("New user password: " + password);
+        emailService.activationEmileSender(password, email);
         return user;
     }
 

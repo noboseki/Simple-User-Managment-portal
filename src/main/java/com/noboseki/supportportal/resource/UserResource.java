@@ -2,10 +2,7 @@ package com.noboseki.supportportal.resource;
 
 import com.noboseki.supportportal.domain.User;
 import com.noboseki.supportportal.domain.UserPrincipal;
-import com.noboseki.supportportal.exception.domain.EmailExistException;
-import com.noboseki.supportportal.exception.domain.ExceptionHandling;
-import com.noboseki.supportportal.exception.domain.UserNotFoundException;
-import com.noboseki.supportportal.exception.domain.UsernameExistException;
+import com.noboseki.supportportal.exception.domain.*;
 import com.noboseki.supportportal.service.UserService;
 import com.noboseki.supportportal.utility.JWTTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +36,7 @@ public class UserResource extends ExceptionHandling {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user) throws UserNotFoundException, UsernameExistException, EmailExistException {
+    public ResponseEntity<User> register(@RequestBody User user) throws UserNotFoundException, UsernameExistException, EmailExistException, EmailSendException {
         User newUser = userService.register(user.getFirstName(), user.getLastName(), user.getUsername(), user.getEmail());
         return ResponseEntity.ok(newUser);
     }
