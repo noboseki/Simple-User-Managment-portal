@@ -1,6 +1,5 @@
 package com.noboseki.supportportal.listener;
 
-import com.noboseki.supportportal.domain.User;
 import com.noboseki.supportportal.domain.UserPrincipal;
 import com.noboseki.supportportal.service.LoginAttemptService;
 import lombok.RequiredArgsConstructor;

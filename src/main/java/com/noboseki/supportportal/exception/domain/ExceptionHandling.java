@@ -40,6 +40,11 @@ public class ExceptionHandling implements ErrorController {
         return createHttpResponse(BAD_REQUEST, ACCOUNT_DISABLED);
     }
 
+    @ExceptionHandler(EmailSendException.class)
+    public ResponseEntity<HttpResponse> emailSendException(EmailSendException exception) {
+        return createHttpResponse(INTERNAL_SERVER_ERROR, exception.getMessage());
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<HttpResponse> badCredentialsException() {
         return createHttpResponse(BAD_REQUEST, INCORRECT_CREDENTIALS);

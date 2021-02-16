@@ -12,8 +12,21 @@ spring:
     hibernate:
       ddl-auto: update
     database-platform: org.hibernate.dialect.H2Dialect
+  mail:
+    host: smtp.gmail.com
+    password: ${SPRING_EMAIL_PASSWORD}
+    username: ${SPRING_EMAIL_LOGIN}
+    port: 587
+    properties:
+      mail:
+        smtp:
+          auth: true
+          connectiontimeout: 5000
+          starttls:
+            enable: true
+            required: true
+          timeout: 5000
+          writetimeout: 5000
 
 jwt:
   secret: 'pxO[{yNZLtxIJSyOb}rdIAYyiJrJQKiGnsnIilQhVWM6ZDRIcnn99I+FJG0D'
-
-
