@@ -2,11 +2,10 @@ package com.noboseki.supportportal.service.impl;
 
 import com.noboseki.supportportal.domain.User;
 import com.noboseki.supportportal.domain.UserPrincipal;
+import com.noboseki.supportportal.dtos.AddNewUserDto;
+import com.noboseki.supportportal.dtos.UpdateUserDto;
 import com.noboseki.supportportal.enumeration.Role;
-import com.noboseki.supportportal.exception.domain.EmailExistException;
-import com.noboseki.supportportal.exception.domain.EmailSendException;
-import com.noboseki.supportportal.exception.domain.UserNotFoundException;
-import com.noboseki.supportportal.exception.domain.UsernameExistException;
+import com.noboseki.supportportal.exception.domain.*;
 import com.noboseki.supportportal.repository.UserRepository;
 import com.noboseki.supportportal.service.EmailService;
 import com.noboseki.supportportal.service.LoginAttemptService;
@@ -21,14 +20,22 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.transaction.Transactional;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import static com.noboseki.supportportal.service.impl.UserServiceImplConstant.*;
+import static com.noboseki.supportportal.constant.FileConstant.*;
+import static com.noboseki.supportportal.constant.UserServiceImplConstant.*;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static jdk.internal.joptsimple.internal.Strings.EMPTY;
 
 @Slf4j
 @Service
@@ -76,7 +83,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             throws UserNotFoundException, UsernameExistException, EmailExistException, EmailSendException {
         validateNewUsernameAndEmail(StringUtils.EMPTY, username, email);
         String password = generatePassword();
-        String encodedPassword = encodePassword(password);
         User user = User.builder()
                 .userId(generateUserId())
                 .firstName(firstName)
@@ -84,34 +90,62 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                 .username(username)
                 .email(email)
                 .joinDate(new Date())
-                .password(encodedPassword)
+                .password(encodePassword(password))
                 .isActive(true)
                 .isNotLocked(true)
                 .role(Role.ROLE_USER.name())
                 .authorities(Role.ROLE_USER.getAuthorities())
-                .profileImageUrl(getTemporaryProfileImg()).build();
+                .profileImageUrl(getTemporaryProfileImg(username)).build();
 
         userRepository.save(user);
         log.info("New user password: " + password);
-        emailService.activationEmileSender(password, email);
+        emailService.sendNewPasswordEmail(password, email);
         return user;
     }
 
-    private String getTemporaryProfileImg() {
-        return ServletUriComponentsBuilder
-                .fromCurrentContextPath().path(DEFAULT_USER_IMAGE_PATH).toUriString();
+    @Override
+    public User addNewUser(AddNewUserDto dto)
+            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+        validateNewUsernameAndEmail(EMPTY, dto.getUsername(), dto.getEmail());
+
+        String password = generatePassword();
+        User user = addNewUserGetUserObject(dto);
+        user.setPassword(encodePassword(password));
+        userRepository.save(user);
+
+        saveProfileImage(user, dto.getProfileImage());
+        return user;
     }
 
-    private String encodePassword(String password) {
-        return passwordEncoder.encode(password);
+    @Override
+    public User updateUser(UpdateUserDto dto)
+            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+        User currentUser = updateUserGetUpdateUser(dto);
+        userRepository.save(currentUser);
+
+        saveProfileImage(currentUser, dto.getProfileImage());
+        return currentUser;
     }
 
-    private String generatePassword() {
-        return RandomStringUtils.randomAlphabetic(10);
+    @Override
+    public void deleteUser(long id) {
+        userRepository.deleteById(id);
     }
 
-    private String generateUserId() {
-        return RandomStringUtils.randomNumeric(10);
+    @Override
+    public void resetPassword(String email) throws EmailNotFoundException, EmailSendException {
+        User user = userRepository.findUserByEmail(email).orElseThrow(() -> new EmailNotFoundException(NO_USER_FOUND_BY_EMAIL + email));
+        String password = generatePassword();
+        user.setPassword(encodePassword(password));
+        userRepository.save(user);
+        emailService.sendNewPasswordEmail(password, user.getEmail());
+    }
+
+    @Override
+    public User updateProfileImage(String username, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+        User user = validateNewUsernameAndEmail(username, null, null);
+        saveProfileImage(user, profileImage);
+        return user;
     }
 
     @Override
@@ -127,6 +161,78 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     @Override
     public Optional<User> findUserByEmail(String email) {
         return userRepository.findUserByEmail(email);
+    }
+
+    private User addNewUserGetUserObject(AddNewUserDto dto) {
+        return User.builder()
+                .userId(generateUserId())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .username(dto.getUsername())
+                .email(dto.getEmail())
+                .joinDate(new Date())
+                .isActive(true)
+                .isNotLocked(true)
+                .role(getRoleEnumName(dto.getRole()).name())
+                .authorities(getRoleEnumName(dto.getRole()).getAuthorities())
+                .profileImageUrl(getTemporaryProfileImg(dto.getUsername())).build();
+    }
+
+    private User updateUserGetUpdateUser(UpdateUserDto dto) throws UserNotFoundException, UsernameExistException, EmailExistException {
+        User currentUser = validateNewUsernameAndEmail(dto.getCurrentUsername(), dto.getNewUsername(), dto.getNewEmail());
+        currentUser.setFirstName(dto.getNewFirstName());
+        currentUser.setLastName(dto.getNewLastName());
+        currentUser.setUsername(dto.getNewUsername());
+        currentUser.setEmail(dto.getNewEmail());
+        currentUser.setActive(dto.isActive());
+        currentUser.setNotLocked(dto.isNonLocked());
+        currentUser.setAuthorities(getRoleEnumName(dto.getRole()).getAuthorities());
+        currentUser.setRole(getRoleEnumName(dto.getRole()).name());
+
+        return currentUser;
+    }
+
+    private void saveProfileImage(User user, MultipartFile profileImage) throws IOException {
+        if (profileImage != null) {
+            Path userFolder = Paths.get(USER_FOLDER + user.getUsername()).toAbsolutePath().normalize();
+            if (!Files.exists(userFolder)) {
+                Files.createDirectories(userFolder);
+                log.info(DIRECTORY_CREATED + userFolder);
+            }
+            Files.deleteIfExists(Paths.get(userFolder + user.getUsername() + DOT + JPG_EXTENSION));
+            Files.copy(profileImage.getInputStream(), userFolder.resolve(user.getUsername() + DOT + JPG_EXTENSION), REPLACE_EXISTING);
+            user.setProfileImageUrl(setProfileImageUrl(user.getUsername()));
+            userRepository.save(user);
+            log.info(FILE_SAVED_IN_FILE_SYSTEM + profileImage.getOriginalFilename());
+        }
+    }
+
+    private String setProfileImageUrl(String username) {
+        return ServletUriComponentsBuilder
+                .fromCurrentContextPath()
+                .path(USER_IMAGE_PATH + username + FORWARD_SLASH + username + DOT + JPG_EXTENSION)
+                .toUriString();
+    }
+
+    private Role getRoleEnumName(String role) {
+        return Role.valueOf(role.toUpperCase());
+    }
+
+    private String getTemporaryProfileImg(String username) {
+        return ServletUriComponentsBuilder
+                .fromCurrentContextPath().path(DEFAULT_USER_IMAGE_PATH + username).toUriString();
+    }
+
+    private String encodePassword(String password) {
+        return passwordEncoder.encode(password);
+    }
+
+    private String generatePassword() {
+        return RandomStringUtils.randomAlphabetic(10);
+    }
+
+    private String generateUserId() {
+        return RandomStringUtils.randomNumeric(10);
     }
 
     private User validateNewUsernameAndEmail(String currentUsername, String newUsername, String newEmail)
