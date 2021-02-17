@@ -26,7 +26,7 @@ public class EmailService {
         }
     }
 
-    public SimpleMailMessage activationEmileSender(String password, String emile) throws EmailSendException {
+    public SimpleMailMessage sendNewPasswordEmail(String password, String emile) throws EmailSendException {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setTo(emile);
         mailMessage.setSubject(REGISTRATION_SUBJECT);
