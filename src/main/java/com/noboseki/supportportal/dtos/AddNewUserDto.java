@@ -1,15 +1,13 @@
 package com.noboseki.supportportal.dtos;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @Builder
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class AddNewUserDto {
     private String firstName;
     private String lastName;

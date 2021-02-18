@@ -79,7 +79,7 @@ public class UserController extends ExceptionHandling {
         return new ResponseEntity<>(user, OK);
     }
 
-    @PostMapping("/add")
+    @PostMapping("/update")
     public ResponseEntity<User> update(@RequestParam("currentUsername") String currentUsername,
                                        @RequestParam("firstName") String firstName,
                                        @RequestParam("lastName") String lastName,
@@ -164,7 +164,7 @@ public class UserController extends ExceptionHandling {
 
     private HttpHeaders getJwtHeader(UserPrincipal userPrincipal) {
         HttpHeaders headers = new HttpHeaders();
-        headers.add(JWT_TOKEN_HEADER, jwtTokenProvider.generateJWTToken(userPrincipal));
+        headers.add(JWT_TOKEN_HEADER, jwtTokenProvider.generateJwtToken(userPrincipal));
         return headers;
     }
 
