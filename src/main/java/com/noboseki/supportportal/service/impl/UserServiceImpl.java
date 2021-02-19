@@ -35,7 +35,7 @@ import java.util.Optional;
 import static com.noboseki.supportportal.constant.FileConstant.*;
 import static com.noboseki.supportportal.constant.UserServiceImplConstant.*;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static jdk.internal.joptsimple.internal.Strings.EMPTY;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 @Slf4j
 @Service

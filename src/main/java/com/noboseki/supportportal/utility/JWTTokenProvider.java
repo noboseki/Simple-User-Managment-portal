@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.auth0.jwt.algorithms.Algorithm.HMAC512;
 import static com.noboseki.supportportal.constant.SecurityConstant.*;
 import static java.util.Arrays.stream;
 
@@ -28,16 +29,12 @@ public class JWTTokenProvider {
     @Value("${jwt.secret}")
     private String secret;
 
-    public String generateJWTToken(UserPrincipal userPrincipal) {
+    public String generateJwtToken(UserPrincipal userPrincipal) {
         String[] claims = getClaimsFromUser(userPrincipal);
-        return JWT.create()
-                .withIssuer(GET_ARRAYS_LLC)
-                .withAudience(GET_ARRAYS_ADMINISTRATION)
-                .withIssuedAt(new Date())
-                .withSubject(userPrincipal.getUsername())
-                .withArrayClaim(AUTHORITIES, claims)
-                .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .sign(Algorithm.HMAC512(secret.getBytes()));
+        return JWT.create().withIssuer(GET_ARRAYS_LLC).withAudience(GET_ARRAYS_ADMINISTRATION)
+                .withIssuedAt(new Date()).withSubject(userPrincipal.getUsername())
+                .withArrayClaim(AUTHORITIES, claims).withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .sign(HMAC512(secret.getBytes()));
     }
 
     public List<GrantedAuthority> getAuthorities(String token) {
@@ -46,15 +43,15 @@ public class JWTTokenProvider {
     }
 
     public Authentication getAuthentication(String username, List<GrantedAuthority> authorities, HttpServletRequest request) {
-        UsernamePasswordAuthenticationToken authenticationToken = new
+        UsernamePasswordAuthenticationToken userPasswordAuthToken = new
                 UsernamePasswordAuthenticationToken(username, null, authorities);
-        authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        return authenticationToken;
+        userPasswordAuthToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        return userPasswordAuthToken;
     }
 
     public boolean isTokenValid(String username, String token) {
         JWTVerifier verifier = getJWTVerifier();
-        return StringUtils.isNotEmpty(username) && isTokenExpired(verifier, token);
+        return StringUtils.isNotEmpty(username) && !isTokenExpired(verifier, token);
     }
 
     public String getSubject(String token) {
@@ -75,18 +72,18 @@ public class JWTTokenProvider {
     private JWTVerifier getJWTVerifier() {
         JWTVerifier verifier;
         try {
-            Algorithm algorithm = Algorithm.HMAC512(secret);
+            Algorithm algorithm = HMAC512(secret);
             verifier = JWT.require(algorithm).withIssuer(GET_ARRAYS_LLC).build();
-        } catch (JWTVerificationException jwtVerifier) {
+        }catch (JWTVerificationException exception) {
             throw new JWTVerificationException(TOKEN_CANNOT_BE_VERIFIED);
         }
         return verifier;
     }
 
-    private String[] getClaimsFromUser(UserPrincipal userPrincipal) {
+    private String[] getClaimsFromUser(UserPrincipal user) {
         List<String> authorities = new ArrayList<>();
-        for (GrantedAuthority authority : userPrincipal.getAuthorities()) {
-            authorities.add(authority.getAuthority());
+        for (GrantedAuthority grantedAuthority : user.getAuthorities()){
+            authorities.add(grantedAuthority.getAuthority());
         }
         return authorities.toArray(new String[0]);
     }
