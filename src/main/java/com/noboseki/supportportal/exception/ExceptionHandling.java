@@ -1,7 +1,8 @@
-package com.noboseki.supportportal.exception.domain;
+package com.noboseki.supportportal.exception;
 
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.noboseki.supportportal.domain.HttpResponse;
+import com.noboseki.supportportal.exception.domain.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpMethod;
@@ -101,6 +102,12 @@ public class ExceptionHandling implements ErrorController {
     public ResponseEntity<HttpResponse> notFoundException(NoResultException exception) {
         log.error(exception.getMessage());
         return createHttpResponse(NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(NotAnImageFileException.class)
+    public ResponseEntity<HttpResponse> notAnImageFileException(NotAnImageFileException exception) {
+        log.error(exception.getMessage());
+        return createHttpResponse(BAD_REQUEST, exception.getMessage());
     }
 
     @ExceptionHandler(IOException.class)

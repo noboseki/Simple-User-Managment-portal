@@ -5,6 +5,8 @@ import com.noboseki.supportportal.domain.User;
 import com.noboseki.supportportal.domain.UserPrincipal;
 import com.noboseki.supportportal.dtos.AddNewUserDto;
 import com.noboseki.supportportal.dtos.UpdateUserDto;
+import com.noboseki.supportportal.exception.ExceptionHandling;
+import com.noboseki.supportportal.exception.domain.NotAnImageFileException;
 import com.noboseki.supportportal.exception.domain.*;
 import com.noboseki.supportportal.service.UserService;
 import com.noboseki.supportportal.utility.JWTTokenProvider;
@@ -67,7 +69,7 @@ public class UserController extends ExceptionHandling {
                                            @RequestParam("isActive") String isActive,
                                            @RequestParam("isNonLocked") String isNonLocked,
                                            @RequestParam(value = "profileImage", required = false) MultipartFile multipartFile)
-            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
 
         User user = userService.addNewUser(AddNewUserDto.builder()
                 .firstName(firstName).lastName(lastName)
@@ -89,7 +91,7 @@ public class UserController extends ExceptionHandling {
                                        @RequestParam("isActive") String isActive,
                                        @RequestParam("isNonLocked") String isNonLocked,
                                        @RequestParam(value = "profileImage", required = false) MultipartFile multipartFile)
-            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
 
         User updatedUser = userService.updateUser(UpdateUserDto.builder()
                 .currentUsername(currentUsername).newFirstName(firstName)
@@ -119,17 +121,17 @@ public class UserController extends ExceptionHandling {
         return response(OK, EMAIL_SENT + email);
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/delete/{username}")
     @PreAuthorize("hasAnyAuthority('user:delete')")
-    public ResponseEntity<HttpResponse> deleteUser(@PathVariable("id") long id) {
-        userService.deleteUser(id);
+    public ResponseEntity<HttpResponse> deleteUser(@PathVariable("username")String username) throws IOException {
+        userService.deleteUser(username);
         return response(NO_CONTENT, USER_DELETE_SUCCESSFULLY);
     }
 
     @PostMapping("/updateProfileImage")
     public ResponseEntity<User> updateProfileImage(@RequestParam("username") String username,
                                                    @RequestParam(value = "profileImage") MultipartFile multipartFile)
-            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
         User user = userService.updateProfileImage(username, multipartFile);
 
         return new ResponseEntity<>(user, OK);

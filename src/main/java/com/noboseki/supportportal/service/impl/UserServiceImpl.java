@@ -5,6 +5,7 @@ import com.noboseki.supportportal.domain.UserPrincipal;
 import com.noboseki.supportportal.dtos.AddNewUserDto;
 import com.noboseki.supportportal.dtos.UpdateUserDto;
 import com.noboseki.supportportal.enumeration.Role;
+import com.noboseki.supportportal.exception.domain.NotAnImageFileException;
 import com.noboseki.supportportal.exception.domain.*;
 import com.noboseki.supportportal.repository.UserRepository;
 import com.noboseki.supportportal.service.EmailService;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -24,10 +26,12 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.transaction.Transactional;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +40,7 @@ import static com.noboseki.supportportal.constant.FileConstant.*;
 import static com.noboseki.supportportal.constant.UserServiceImplConstant.*;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.springframework.util.MimeTypeUtils.*;
 
 @Slf4j
 @Service
@@ -105,7 +110,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
     @Override
     public User addNewUser(AddNewUserDto dto)
-            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
         validateNewUsernameAndEmail(EMPTY, dto.getUsername(), dto.getEmail());
 
         String password = generatePassword();
@@ -119,7 +124,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
     @Override
     public User updateUser(UpdateUserDto dto)
-            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
         User currentUser = updateUserGetUpdateUser(dto);
         userRepository.save(currentUser);
 
@@ -128,8 +133,11 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public void deleteUser(long id) {
-        userRepository.deleteById(id);
+    public void deleteUser(String username) throws IOException {
+        User user = findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        Path userFolder = Paths.get(USER_FOLDER + user.getUsername()).toAbsolutePath().normalize();
+        FileUtils.deleteDirectory(new File(userFolder.toString()));
+        userRepository.deleteById(user.getId());
     }
 
     @Override
@@ -142,7 +150,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public User updateProfileImage(String username, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException {
+    public User updateProfileImage(String username, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException {
         User user = validateNewUsernameAndEmail(username, null, null);
         saveProfileImage(user, profileImage);
         return user;
@@ -192,8 +200,11 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return currentUser;
     }
 
-    private void saveProfileImage(User user, MultipartFile profileImage) throws IOException {
+    private void saveProfileImage(User user, MultipartFile profileImage) throws IOException, NotAnImageFileException {
         if (profileImage != null) {
+            if (!Arrays.asList(IMAGE_JPEG_VALUE, IMAGE_PNG_VALUE, IMAGE_GIF_VALUE).contains(profileImage.getContentType())){
+                throw new NotAnImageFileException(profileImage.getOriginalFilename() + "is not an image file");
+            }
             Path userFolder = Paths.get(USER_FOLDER + user.getUsername()).toAbsolutePath().normalize();
             if (!Files.exists(userFolder)) {
                 Files.createDirectories(userFolder);

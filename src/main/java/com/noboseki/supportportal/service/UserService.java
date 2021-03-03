@@ -3,6 +3,7 @@ package com.noboseki.supportportal.service;
 import com.noboseki.supportportal.domain.User;
 import com.noboseki.supportportal.dtos.AddNewUserDto;
 import com.noboseki.supportportal.dtos.UpdateUserDto;
+import com.noboseki.supportportal.exception.domain.NotAnImageFileException;
 import com.noboseki.supportportal.exception.domain.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,13 +22,13 @@ public interface UserService {
     Optional<User> findUserByEmail(String email);
 
     User addNewUser(AddNewUserDto addNewUserDto)
-            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException;
+            throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException;
 
-    User updateUser(UpdateUserDto updateUserDto) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException;
+    User updateUser(UpdateUserDto updateUserDto) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException;
 
-    void deleteUser(long id);
+    void deleteUser(String username) throws IOException;
 
     void resetPassword(String email) throws EmailNotFoundException, EmailSendException;
 
-    User updateProfileImage(String username, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException;
+    User updateProfileImage(String username, MultipartFile profileImage) throws UserNotFoundException, UsernameExistException, EmailExistException, IOException, NotAnImageFileException;
 }
